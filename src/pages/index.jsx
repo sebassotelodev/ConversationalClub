@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   MessageCircle,
@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Target,
   Zap,
+  ArrowRight,
 } from "lucide-react";
 import { Chat } from "@/componentes/chat";
 
@@ -26,6 +27,7 @@ const ConversationalClubLanding = () => {
   const contactRef = useRef(null);
 
   const [verChat, setVerChat] = useState(false);
+  const [showGuide, setShowGuide] = useState(false); // NEW: overlay guide
 
   const scrollToSection = (ref) => {
     ref.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,6 +35,7 @@ const ConversationalClubLanding = () => {
 
   const handleRegisterClick = () => {
     setVerChat(!verChat);
+    setShowGuide(true); // NEW: show overlay guide
   };
 
   const handleChatToggle = () => {
@@ -43,12 +46,45 @@ const ConversationalClubLanding = () => {
     setVerChat((prev) => !prev);
   };
 
+  // NEW: Close overlays with ESC
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowVideoModal(false);
+        setShowGuide(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const VideoModal = () => {
     if (!showVideoModal) return null;
 
+    // Lock scroll while modal is open
+    useEffect(() => {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev || "auto";
+      };
+    }, []);
+
+    const stop = (e) => e.stopPropagation();
+    const handleBackdropClick = () => setShowVideoModal(false);
+
     return (
-      <div className="fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-fadeIn">
-        <div className="relative rounded-3xl p-4 md:p-6 max-w-xs sm:max-w-md w-full border border-[#EE7203]/30 bg-gradient-to-br from-[#112C3E]/90 to-[#0C212D]/90 backdrop-blur-xl shadow-2xl animate-scaleIn">
+      <div
+        className="fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-fadeIn"
+        onClick={handleBackdropClick}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Video modal"
+      >
+        <div
+          className="relative rounded-3xl p-4 md:p-6 max-w-xs sm:max-w-md w-full border border-[#EE7203]/30 bg-gradient-to-br from-[#112C3E]/90 to-[#0C212D]/90 backdrop-blur-xl shadow-2xl animate-scaleIn"
+          onClick={stop}
+        >
           <button
             onClick={() => setShowVideoModal(false)}
             className="absolute -top-4 -right-4 bg-gradient-to-r from-[#FF3816] to-[#EE7203] text-white rounded-full p-3 hover:shadow-xl hover:scale-110 transition-all duration-300 z-10 border-2 border-white/20"
@@ -65,6 +101,69 @@ const ConversationalClubLanding = () => {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // NEW: Dark blur overlay that points to the bot (bottom-right)
+  const GuideOverlay = () => {
+    if (!showGuide) return null;
+
+    const handleClose = () => setShowGuide(false);
+    const stop = (e) => e.stopPropagation();
+
+    // Lock scroll while overlay is open
+    useEffect(() => {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev || "auto";
+      };
+    }, []);
+
+    return (
+      <div
+        className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm animate-fadeIn"
+        onClick={handleClose}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Guide overlay"
+      >
+        {/* Central message card (click inside does not close) */}
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-[90%] sm:w-[480px] bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl p-6 text-white shadow-2xl"
+          onClick={stop}
+        >
+          <div className="flex items-start gap-3">
+            <div className="bg-gradient-to-r from-[#EE7203] to-[#FF3816] rounded-xl p-2 shrink-0">
+              <MessageCircle className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold mb-1">One more step! ✨</h3>
+              <p className="text-white/90">
+                Click the <span className="font-semibold">bot</span> at the
+                bottom right to start your registration.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-white/60 mt-2">
+            (Press <span className="font-semibold">Esc</span> or click outside
+            to close)
+          </p>
+        </div>
+
+        {/* Arrow + label pointing to the bottom-right */}
+        <div className="pointer-events-none absolute bottom-24 right-24 hidden sm:block">
+          <div className="mb-2 px-3 py-1 rounded-full text-sm font-semibold bg-white/10 border border-white/20 backdrop-blur-sm inline-block text-white">
+            Here is the bot 👇
+          </div>
+          <div className="w-40 h-40 relative">
+            <div className="absolute inset-0 rotate-45 animate-slowBounce flex items-center">
+              <ArrowRight className="w-40 h-40 text-white/80" />
+            </div>
           </div>
         </div>
       </div>
@@ -92,8 +191,9 @@ const ConversationalClubLanding = () => {
       {/* Enhanced Navigation with glassmorphism */}
       <nav
         ref={homeRef}
-        className="relative z-10 flex justify-between items-center p-6 max-w-7xl mx-auto"
+        className="relative z-10 max-w-7xl mx-auto p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
+        {/* Logo */}
         <button
           onClick={handleLogoClick}
           className="rounded-xl flex items-center justify-center overflow-hidden hover:scale-110 transition-all duration-500 hover:rotate-6 cursor-pointer group"
@@ -111,13 +211,14 @@ const ConversationalClubLanding = () => {
           </div>
         </button>
 
-        <div className="hidden md:flex space-x-8 text-white/90 bg-white/5 backdrop-blur-sm rounded-2xl px-8 py-4 border border-white/10">
+        {/* Menu (same estilo en mobile, centrado y con wrap) */}
+        <div className="w-full md:w-auto flex flex-wrap justify-center gap-4 sm:gap-6 text-white/90 bg-white/5 backdrop-blur-sm rounded-2xl px-4 sm:px-8 py-3 sm:py-4 border border-white/10">
           {[
             { label: "Home", ref: homeRef },
             { label: "About", ref: aboutRef },
             { label: "FAQ", ref: faqRef },
             { label: "Contact", ref: contactRef },
-          ].map((item, index) => (
+          ].map((item) => (
             <button
               key={item.label}
               onClick={() => scrollToSection(item.ref)}
@@ -129,9 +230,10 @@ const ConversationalClubLanding = () => {
           ))}
         </div>
 
+        {/* Register button (debajo y full-width en mobile) */}
         <button
           onClick={handleRegisterClick}
-          className="bg-gradient-to-r from-[#EE7203] to-[#FF3816] text-white px-6 py-2 rounded-full font-semibold hover:shadow-2xl hover:shadow-[#EE7203]/25 transition-all duration-300 transform hover:scale-105 relative overflow-hidden group border border-white/20"
+          className="w-full md:w-auto bg-gradient-to-r from-[#EE7203] to-[#FF3816] text-white px-6 py-3 rounded-full font-semibold hover:shadow-2xl hover:shadow-[#EE7203]/25 transition-all duration-300 transform hover:scale-105 relative overflow-hidden group border border-white/20"
         >
           <span className="relative z-10">Register 👇</span>
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF3816] to-[#EE7203] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -224,7 +326,7 @@ const ConversationalClubLanding = () => {
               </button>
             </div>
 
-            {/* Enhanced Stats with improved exclusive badge */}
+            {/* Enhanced Stats with same height cards */}
             <div className="grid grid-cols-3 gap-6 pt-8">
               {[
                 {
@@ -246,8 +348,8 @@ const ConversationalClubLanding = () => {
                   exclusive: false,
                 },
               ].map((stat, index) => (
-                <div key={index} className="text-center group cursor-default">
-                  <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-[#EE7203]/30 transition-all duration-300 hover:scale-105 overflow-hidden">
+                <div key={index} className="text-center group cursor-default h-full">
+                  <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-[#EE7203]/30 transition-all duration-300 hover:scale-105 overflow-hidden h-full min-h-[180px] sm:min-h-[200px] lg:min-h-[220px] flex flex-col items-center justify-center">
                     {/* Enhanced Exclusive badge */}
                     {stat.exclusive && (
                       <>
@@ -264,7 +366,7 @@ const ConversationalClubLanding = () => {
                         </div>
                       </>
                     )}
-                    
+
                     <div className="text-[#EE7203] mb-3 flex justify-center group-hover:scale-110 transition-transform duration-300 mt-2">
                       {stat.icon}
                     </div>
@@ -292,7 +394,7 @@ const ConversationalClubLanding = () => {
                 />
                 {/* Enhanced overlay gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-2xl"></div>
-                
+
                 {/* Level indicator badge */}
                 <div className="absolute top-4 right-4 bg-gradient-to-r from-[#EE7203] to-[#FF3816] text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg border border-white/20">
                   Native Speaker
@@ -365,7 +467,7 @@ const ConversationalClubLanding = () => {
               About the Conversational Club
               <Sparkles className="w-8 h-8 text-[#FF3816] animate-pulse" />
             </h2>
-            
+
             {/* B1+ Level indicator */}
             <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#EE7203]/20 to-[#FF3816]/20 backdrop-blur-lg rounded-full text-white border border-[#EE7203]/30 mb-8">
               <Target className="w-5 h-5 mr-2 text-[#EE7203]" />
@@ -566,6 +668,8 @@ const ConversationalClubLanding = () => {
       {/* Chat Component */}
       <Chat isVisible={verChat} onToggle={handleChatToggle} />
 
+      {/* Overlays */}
+      <GuideOverlay />
       <VideoModal />
 
       <style jsx>{`
